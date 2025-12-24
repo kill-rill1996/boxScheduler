@@ -1,17 +1,16 @@
 import asyncio
-from datetime import datetime
-# from database.orm import AsyncOrm
+from database.orm import AsyncOrm
 
 import aiogram as io
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import BotCommand, BotCommandScopeDefault
 
 # from middlewares.banned import BanedMiddleware
 # from middlewares.database import DatabaseMiddleware
 # from middlewares.admin import AdminMiddleware
 from settings import settings
+from logger import logger
 from routers import main_router
 # from routers.buttons import commands as cmd
 
@@ -69,4 +68,5 @@ async def start_bot() -> None:
 
 
 if __name__ == "__main__":
+    logger.info("Start")
     asyncio.run(start_bot())

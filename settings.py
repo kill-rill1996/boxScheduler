@@ -19,11 +19,11 @@ CALENDAR_MONTHS = {
 
 
 class Database(BaseSettings):
-    postgres_user: str = Field(..., env='POSTGRES_USER')
-    postgres_password: str = Field(..., env='POSTGRES_USER')
-    postgres_db: str = Field(..., env='POSTGRES_DB')
-    postgres_host: str = Field(..., env='POSTGRES_HOST')
-    postgres_port: str = Field(..., env='POSTGRES_PORT')
+    postgres_user: str = Field()
+    postgres_password: str = Field()
+    postgres_db: str = Field()
+    postgres_host: str = Field()
+    postgres_port: str = Field()
 
     @property
     def DATABASE_URL(self):
@@ -31,15 +31,15 @@ class Database(BaseSettings):
 
 
 class Settings(BaseSettings):
-    bot_token: str = Field(..., env='BOT_TOKEN')
-    admins: list = Field(..., env='ADMINS')
-    admin_tg_username: str = Field(..., env='ADMIN_TG_USERNAME')
+    bot_token: str = Field()
+    admins: list = Field()
+    admin_tg_username: str = Field()
 
     # admin panel
-    secret_key: str = Field(..., env='SECRET_KEY')
-    username: str = Field(..., env='USERNAME')
-    password: str = Field(..., env='PASSWORD')
-    domain: str = Field(..., env='DOMAIN')
+    secret_key: str = Field()
+    username: str = Field()
+    password: str = Field()
+    domain: str = Field()
 
     timezone: str = "Europe/Moscow"
 
