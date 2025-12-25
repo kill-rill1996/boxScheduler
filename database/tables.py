@@ -40,6 +40,8 @@ class User(Base):
     is_admin: Mapped[bool] = mapped_column(default=False)
 
     events: Mapped[list["Event"]] = relationship(back_populates="users", secondary="events_users")
+    payments: Mapped[list["Payments"]] =  relationship(back_populates="user", cascade="all, delete")
+    reserved: Mapped[list["Reserved"]] = relationship(back_populates="user", cascade="all, delete")
 
     def __str__(self):
         return f"{self.tg_id} {self.username + ' ' if self.username else ''}"
@@ -60,6 +62,8 @@ class Event(Base):
     price: Mapped[int]
 
     users: Mapped[list["User"]] = relationship(back_populates="events", secondary="events_users")
+    payments: Mapped[list["Payments"]] = relationship(back_populates="events", cascade="all, delete")
+    reserved: Mapped[list["Reserved"]] = relationship(back_populates="events", cascade="all, delete")
 
     def __str__(self):
         return f"{self.type} {self.title}"
@@ -68,6 +72,35 @@ class Event(Base):
 class EventsUsers(Base):
     """Many-to-many relationship"""
     __tablename__ = "events_users"
-
+    created_at: Mapped[datetime.datetime]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), primary_key=True)
+
+
+class Payments(Base):
+    """Оплата пользователя за events"""
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    paid: Mapped[bool] = mapped_column(default=False)  # True если пользователь нажал "Оплатил"
+    paid_confirm: Mapped[bool] = mapped_column(default=False)  # True если админ подтвердил платеж
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user: Mapped["User"] = relationship(back_populates="payments")
+
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    event: Mapped["Event"] = relationship(back_populates="payments")
+
+
+class Reserved(Base):
+    """Запасные пользователи для events"""
+    __tablename__ = "reserved"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime.datetime]
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    user: Mapped["User"] = relationship(back_populates="reserved")
+
+    event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"))
+    event: Mapped["Event"] = relationship(back_populates="reserved")

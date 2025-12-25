@@ -28,16 +28,16 @@ services:
 #    volumes:
 #      - /etc/letsencrypt:/etc/letsencrypt
 #
-#  app:
-#      build:
-#        context: .
-#        dockerfile: app.Dockerfile
-#      ports:
-#        - "8000:8000"
-#      env_file:
-#        - .env.dev
-#      depends_on:
-#        - postgresdb
+  app:
+      build:
+        context: .
+        dockerfile: app.Dockerfile
+      ports:
+        - "8000:8000"
+      env_file:
+        - .env.dev
+      depends_on:
+        - postgresdb
 
   postgresdb:
     image: postgres:13.1

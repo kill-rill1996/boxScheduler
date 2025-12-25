@@ -1,16 +1,11 @@
-# from sqladmin.authentication import login_required
-# from starlette.requests import Request
-# from starlette.responses import Response, RedirectResponse
-#
-# from app.auth import authentication_backend
-# from database.database import async_engine
-# from sqladmin import Admin
-#
-# from app.views import UsersAdmin, ExecutorsAdmin, ClientsAdmin, BlockedUsersAdmin, RejectReasonsAdmin, \
-#     ProfessionsAdmin, JobsAdmin, OrdersAdmin, OrdersResponsesAdmin, ExecutorsViewsAdmin, OrderResponseMetricView, \
-#     ExecutorsViewsMetricView, ExecutorsRegistrationMetricView, ClientsRegistrationMetricView
-#
-# from app.routers import app
+from sqladmin.authentication import login_required
+from starlette.requests import Request
+from starlette.responses import Response, RedirectResponse
+
+from database.database import async_engine
+from sqladmin import Admin
+
+from app.routers import app
 #
 #
 # class CustomAdmin(Admin):
@@ -37,11 +32,11 @@
 #         return RedirectResponse(request.url_for("admin:index"), status_code=302)
 #
 #
-# admin = CustomAdmin(
-#     app, async_engine, authentication_backend=authentication_backend,
-#     templates_dir="app/templates/sqladmin/",
-#     title="PRUV ADMIN"
-# )
+admin = Admin(
+    app, async_engine,
+    templates_dir="app/templates/sqladmin/",
+    title="BOX ADMIN"
+)
 #
 #
 # admin.add_view(UsersAdmin)
@@ -67,5 +62,3 @@
 # # admin.add_view(FavoriteOrdersAdmin)
 # # admin.add_view(OrdersJobsAdmin)
 # # admin.add_view(ExecutorsJobsAdmin)
-#
-print("hello")
