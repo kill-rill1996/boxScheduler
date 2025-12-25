@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.tables import Base, UserRoles, Availability
+from database.tables import Base
 
 from logger import logger
 # from schemas.blocked_users import BlockedUserAdd, BlockedUser

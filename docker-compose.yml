@@ -4,13 +4,13 @@ services:
     build:
       context: .
       dockerfile: bot.Dockerfile
-#    command: sh -c "alembic upgrade head && python main.py"
-    command: sh -c "uv run main.py" # dev version
+    command: sh -c "uv run alembic upgrade head && uv run main.py"
+#    command: sh -c "uv run main.py" # dev version
     env_file:
       - ./.env.dev
     volumes:
       - ./logs:/app/logs/
-    #      - ./database/migrations/versions:/app/database/migrations/versions
+      - ./database/migrations/versions:/app/database/migrations/versions
     depends_on:
       postgresdb:
         condition: service_healthy
