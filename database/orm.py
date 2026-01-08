@@ -5,16 +5,10 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
+from database.schemas import AddUser
 from database.tables import Base
 
 from logger import logger
-# from schemas.blocked_users import BlockedUserAdd, BlockedUser
-# from schemas.client import ClientAdd, RejectReason, Client
-# from schemas.executor import ExecutorAdd, Executor
-# from schemas.order import OrderAdd, Order, TaskFile, TaskFileAdd
-# from schemas.profession import Profession, Job, ProfessionAdd, JobAdd
-# from schemas.responses import OrderResponse
-# from schemas.user import UserAdd, User
 
 # для model_validate регистрируем возвращаемый из asyncpg.fetchrow класс Record
 Mapping.register(asyncpg.Record)
@@ -33,7 +27,39 @@ class AsyncOrm:
         """Удаление таблиц"""
         async with async_engine.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
-    #
+
+
+    @staticmethod
+    async def is_registered(tg_id: str, session: Any) -> bool:
+        """Проверка регистрации"""
+        try:
+            exists = await session.fetchval(
+                """
+                SELECT EXISTS(SELECT 1 FROM users WHERE tg_id = $1)
+                """,
+                tg_id,
+            )
+            return exists
+
+        except Exception as e:
+            logger.error(f"Ошибка при проверке регистрации: {e}")
+
+    @staticmethod
+    async def create_user(user: AddUser, session: Any) -> None:
+        """Создание нового пользователя"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO users (tg_id, username, firstname, lastname, level, gender, created_at, updated_at, is_banned, is_admin)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                """,
+                user.tg_id, user.username, user.firstname, user.lastname, user.level, user.gender,
+                user.created_at, user.updated_at, user.is_banned, user.is_admin
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при создании пользователя {user.tg_id}: {e}")
+            raise
+
     # @staticmethod
     # async def check_user_already_exists(tg_id: str, session: any) -> bool:
     #     """Проверка зарегистрирован ли пользователь"""

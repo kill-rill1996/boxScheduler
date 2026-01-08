@@ -1,4 +1,7 @@
 import asyncio
+
+from aiogram.types import BotCommand
+
 from database.orm import AsyncOrm
 
 import aiogram as io
@@ -7,11 +10,11 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 # from middlewares.banned import BanedMiddleware
-# from middlewares.database import DatabaseMiddleware
+from src.middlewares import DatabaseMiddleware
 # from middlewares.admin import AdminMiddleware
 from settings import settings
 from logger import logger
-from routers import main_router
+from src.routers import main_router
 # from routers.buttons import commands as cmd
 
 
@@ -55,8 +58,8 @@ async def start_bot() -> None:
     dp.include_router(main_router)
     #
     # # MIDDLEWARES
-    # dp.message.middleware(DatabaseMiddleware())
-    # dp.callback_query.middleware(DatabaseMiddleware())
+    dp.message.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
     #
     # dp.message.middleware(BanedMiddleware())
     # dp.callback_query.middleware(BanedMiddleware())
@@ -68,5 +71,5 @@ async def start_bot() -> None:
 
 
 if __name__ == "__main__":
-    logger.info("Start")
+    logger.info("Bot started")
     asyncio.run(start_bot())

@@ -9,7 +9,8 @@ COPY pyproject.toml uv.lock .python-version alembic.ini /app/
 RUN uv sync --locked
 
 # Копирование файлов бота
-COPY /src /app
+COPY main.py /app
+COPY /src /app/src
 COPY /database /app/database
 COPY /logs /app/logs
 COPY settings.py logger.py /app/
