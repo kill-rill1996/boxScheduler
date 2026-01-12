@@ -24,8 +24,8 @@ async def start(message: Message, state: FSMContext):
     # Убираем клавиатуру у сообщения
     try:
         await data["prev_mess"].edit_text(data["prev_mess"].html_text)
-    except Exception as e:
-        print(e)
+    except Exception:
+        pass
 
     # Проверяем что отправлен текст
     if not message.text:

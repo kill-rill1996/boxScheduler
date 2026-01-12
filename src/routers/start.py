@@ -43,6 +43,7 @@ async def cancel(callback: CallbackQuery, state: FSMContext) -> None:
     """Роутер для отмены и сброса state"""
     try:
         await state.clear()
+        await callback.answer()
         await callback.message.delete()
     except:
         pass

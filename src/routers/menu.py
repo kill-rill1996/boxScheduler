@@ -20,4 +20,4 @@ async def main_menu(message: Message | CallbackQuery) -> None:
         await message.answer(msg, reply_markup=keyboard.as_markup())
     else:
         await message.answer()
-        await message.message.answer(msg, reply_markup=keyboard.as_markup())
+        await message.message.edit_text(msg, reply_markup=keyboard.as_markup())

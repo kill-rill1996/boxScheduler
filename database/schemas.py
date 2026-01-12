@@ -14,3 +14,7 @@ class AddUser(BaseModel):
     updated_at: datetime.datetime
     is_banned: bool
     is_admin: bool
+
+
+class User(AddUser):
+    id: int

@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.schemas import AddUser
+from database.schemas import AddUser, User
 from database.tables import Base
 
 from logger import logger
@@ -59,6 +59,42 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя {user.tg_id}: {e}")
             raise
+
+    @staticmethod
+    async def update_user(firstname: str, lastname: str, tg_id: str, session: Any) -> None:
+        """Изменение имени профиля"""
+        try:
+            await session.execute(
+                """
+                UPDATE users
+                SET firstname = $1, lastname = $2
+                WHERE tg_id = $3
+                """,
+                firstname, lastname, tg_id
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при изменении имени профиля пользователя {tg_id} на {firstname} {lastname}: {e}")
+            raise
+
+    @staticmethod
+    async def get_user_by_tg_id(tg_id: str, session: Any) -> User | None:
+        """Получение пользователя по tg_id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            if row:
+                return User.model_validate(row)
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"Ошибка при получение пользователя tg_id {tg_id}: {e}")
+
 
     # @staticmethod
     # async def check_user_already_exists(tg_id: str, session: any) -> bool:
