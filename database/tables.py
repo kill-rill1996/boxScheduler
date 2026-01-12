@@ -58,7 +58,7 @@ class Event(Base):
     places: Mapped[int]
     min_user_count: Mapped[int]
     active: Mapped[bool] = mapped_column(default=True)
-    level: Mapped[int]
+    level: Mapped[int] = mapped_column(nullable=True)
     price: Mapped[int]
 
     users: Mapped[list["User"]] = relationship(back_populates="events", secondary="events_users")

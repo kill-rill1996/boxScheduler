@@ -18,3 +18,18 @@ class AddUser(BaseModel):
 
 class User(AddUser):
     id: int
+
+
+class AddEvent(BaseModel):
+    type: str
+    title: str
+    date: datetime.datetime
+    places: int
+    min_user_count: int
+    active: bool
+    level: int | None = None
+    price: int
+
+
+class Event(AddEvent):
+    id: int
