@@ -18,6 +18,16 @@ CALENDAR_MONTHS = {
 }
 
 
+WEEKDAYS = {
+    0: "Пн",
+    1: "Вт",
+    2: "Ср",
+    3: "Чт",
+    4: "Пт",
+    5: "Сб",
+    6: "Вс",
+}
+
 class Database(BaseSettings):
     postgres_user: str = Field()
     postgres_password: str = Field()
@@ -40,6 +50,10 @@ class Settings(BaseSettings):
     username: str = Field()
     password: str = Field()
     domain: str = Field()
+
+    # events
+    show_days: int = 10
+    weekdays: dict = WEEKDAYS
 
     timezone: str = "Europe/Moscow"
 

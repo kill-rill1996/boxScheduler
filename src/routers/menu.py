@@ -1,10 +1,6 @@
-from typing import Any
-
-from aiogram import Router, types, F
+from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command
 
-from database.orm import AsyncOrm
 from src.keyboards import main_menu_keyboard
 from src.messages import main_menu_message
 
