@@ -7,9 +7,10 @@ from aiogram.types import Message, CallbackQuery
 
 from database.orm import AsyncOrm
 from database.schemas import AddUser
+from src.messages import main_menu_message
 from src.routers.menu import main_menu
 from src.states import Registration
-from src.keyboards import cancel_keyboard, get_inline_keyboard
+from src.keyboards import cancel_keyboard, get_inline_keyboard, main_menu_keyboard
 from src import utils
 
 from settings import settings
@@ -101,6 +102,8 @@ async def get_gender(callback: CallbackQuery, session: Any, state: FSMContext):
 
     # Перенаправляем пользователя в главное меню
     await callback.message.edit_text("Вы успешно зарегистрированы ✅")
-    await main_menu(callback)
+    msg = main_menu_message()
+    keyboard = main_menu_keyboard()
+    await callback.message.answer(msg, reply_markup=keyboard.as_markup())
 
 

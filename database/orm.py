@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.schemas import AddUser, User
+from database.schemas import AddUser, User, AddEvent
 from database.tables import Base
 
 from logger import logger
@@ -45,6 +45,22 @@ class AsyncOrm:
             logger.error(f"Ошибка при проверке регистрации: {e}")
 
     @staticmethod
+    async def user_is_admin(tg_id: str, session: Any) -> bool:
+        """Проверка администратора"""
+        try:
+            is_admin = await session.fetchval(
+                """
+                SELECT is_admin
+                FROM users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            return is_admin
+        except Exception as e:
+            logger.error(f"Ошибка при проверка администратора {tg_id}: {e}")
+
+    @staticmethod
     async def create_user(user: AddUser, session: Any) -> None:
         """Создание нового пользователя"""
         try:
@@ -56,6 +72,7 @@ class AsyncOrm:
                 user.tg_id, user.username, user.firstname, user.lastname, user.level, user.gender,
                 user.created_at, user.updated_at, user.is_banned, user.is_admin
             )
+            logger.info(f"Зарегистрирован пользователь {user.tg_id} {user.firstname} {user.lastname}")
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя {user.tg_id}: {e}")
             raise
@@ -72,6 +89,7 @@ class AsyncOrm:
                 """,
                 firstname, lastname, tg_id
             )
+            logger.info(f"Имя пользователя {tg_id} изменено на {firstname} {lastname}")
         except Exception as e:
             logger.error(f"Ошибка при изменении имени профиля пользователя {tg_id} на {firstname} {lastname}: {e}")
             raise
@@ -94,6 +112,26 @@ class AsyncOrm:
                 return None
         except Exception as e:
             logger.error(f"Ошибка при получение пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def create_event(event: AddEvent, session: Any) -> int:
+        """Создание события"""
+        try:
+            event_id = await session.fetchval(
+                """
+                INSERT INTO events (type, title, date, places, min_user_count, active, level, price)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                RETURNING id
+                """,
+                event.type, event.title, event.date, event.places, event.min_user_count, event.active, event.level,
+                event.price
+            )
+            logger.info(f"Создано событие {event.type} {event.title} {event.date}")
+            return event_id
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании события {event.type} {event.title} {event.date}: {e}")
+            raise
 
 
     # @staticmethod
