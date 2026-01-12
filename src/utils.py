@@ -2,6 +2,7 @@ from datetime import datetime
 
 from database.schemas import Event
 from settings import settings
+import pytz
 
 
 class FullnameException(Exception):
@@ -54,3 +55,63 @@ def get_active_dates(events: list[Event]) -> dict:
             active_dates[converted_date] += 1
 
     return active_dates
+
+
+def is_valid_date(date: str) -> bool:
+    """Проверка валидности даты"""
+    try:
+        result = datetime.strptime(date, "%d.%m.%Y").date()
+        if result < datetime.now(tz=pytz.timezone("Europe/Moscow")).date():
+            return False
+    except ValueError:
+        return False
+    return True
+
+
+def is_valid_time(time: str) -> bool:
+    """Проверка валидности времени"""
+    time_list = time.split(":")
+
+    if len(time_list) != 2:
+        return False
+
+    hours = time_list[0]
+    minutes = time_list[1]
+    try:
+        hours = int(hours)
+        minutes = int(minutes)
+    except ValueError:
+        return False
+
+    if hours > 24 or hours < 0:
+        return False
+    if minutes > 59 or minutes < 0:
+        return False
+
+    return True
+
+
+def is_valid_places(places: str) -> bool:
+    """Проверка валидности количества мест"""
+    try:
+        places = int(places)
+    except ValueError:
+        return False
+
+    if places <= 0:
+        return False
+
+    return True
+
+
+def is_valid_price(price: str) -> bool:
+    """Проверка валидности цены"""
+    try:
+        price = int(price)
+    except ValueError:
+        return False
+
+    if price < 0:
+        return False
+
+    return True

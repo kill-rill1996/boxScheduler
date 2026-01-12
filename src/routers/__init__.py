@@ -4,6 +4,7 @@ from .registration import router as reg_router
 from .profile import router as profile_router
 from .menu import router as menu_router
 from .events import router as events_router
+from .add_events import router as add_events_router
 
 main_router = Router()
 
@@ -13,5 +14,6 @@ main_router.include_routers(
     reg_router,
     profile_router,
     menu_router,
+    add_events_router,
     events_router,
 )

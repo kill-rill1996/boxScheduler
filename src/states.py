@@ -8,3 +8,13 @@ class Registration(StatesGroup):
 
 class UpdateUser(StatesGroup):
     name = State()
+
+
+class AddEventFSM(StatesGroup):
+    type = State()
+    title = State()
+    date = State()
+    time = State()
+    places = State()
+    min_count = State()
+    price = State()
