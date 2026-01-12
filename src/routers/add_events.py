@@ -14,6 +14,7 @@ from src.states import AddEventFSM
 from src.keyboards import cancel_keyboard
 from src import utils
 from src.middlewares import AdminMiddleware
+from src import buttons as btn
 
 
 router = Router()
@@ -234,6 +235,6 @@ async def get_price(message: Message, state: FSMContext, session: Any):
 
         await message.answer(f"Событие <b>\"{event.title}\"</b> <b>{date_time_str}</b> успешно создано ✅")
     except:
-        await message.answer(f"Ошибка при создании события")
+        await message.answer(f"{btn.INFO} Ошибка при создании события")
 
     await state.clear()
