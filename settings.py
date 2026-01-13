@@ -54,6 +54,8 @@ class Settings(BaseSettings):
     # events
     show_days: int = 10
     weekdays: dict = WEEKDAYS
+    address_url: str = "https://yandex.ru/navi/org/volleyball_city/9644230187/?ll=30.333934%2C59.993168&z=16"
+    address: str = "Санкт-Петербург, Институтский пер., 5Н"
 
     timezone: str = "Europe/Moscow"
 

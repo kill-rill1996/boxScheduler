@@ -162,3 +162,45 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получение ближайших событий: {e}")
+
+    @staticmethod
+    async def get_events_by_date(date: datetime.datetime, session: Any, only_active: bool = True) -> list[Event] | None:
+        min_date = datetime.datetime.combine(date, datetime.datetime.min.time())
+        max_date = min_date + datetime.timedelta(days=1)
+
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * FROM events
+                WHERE date >= $1 AND date <= $2
+                ORDER BY date
+                """,
+                min_date, max_date
+            )
+            events = []
+
+            for row in rows:
+                if only_active and row["active"] == False:
+                    continue
+                events.append(Event.model_validate(row))
+
+            return events
+
+        except Exception as e:
+            logger.error(f"Ошибка при получений событий за {date}: {e}")
+
+    @staticmethod
+    async def get_event_by_id(event_id: int, session: Any) -> Event | None:
+        """Получение события по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * FROM events WHERE id = $1
+                """,
+                event_id
+            )
+
+            return Event.model_validate(row)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении собыытия по id {event_id}: {e}")

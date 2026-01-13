@@ -35,6 +35,30 @@ async def get_firstname_lastname(fullname: str) -> list[str]:
     return [firstname, lastname]
 
 
+def convert_date_named_month(date: datetime) -> str:
+    """Перевод даты в дату с месяцем прописью"""
+    months = {
+        1: "января",
+        2: "февраля",
+        3: "марта",
+        4: "апреля",
+        5: "мая",
+        6: "июня",
+        7: "июля",
+        8: "августа",
+        9: "сентября",
+        10: "октября",
+        11: "ноября",
+        12: "декабря",
+    }
+    return f"{date.date().day} {months[date.date().month]} {date.date().strftime('%Y')}"
+
+
+def convert_time(date: datetime) -> str:
+    """Перевод времени в str формат для вывода"""
+    return date.time().strftime("%H:%M")
+
+
 def get_weekday_from_date(date_str: str) -> str:
     """Получение дня недели из str даты в формате DD.MM.YYYY для использования в списке событий для пользователей"""
     date = datetime.strptime(date_str, "%d.%m.%Y").date()
@@ -42,7 +66,7 @@ def get_weekday_from_date(date_str: str) -> str:
     return weekday
 
 
-def get_active_dates(events: list[Event]) -> dict:
+def get_active_dates(events: list[Event]) -> dict[str, int]:
     """Формирование словаря с активными датами"""
     active_dates = {}
 

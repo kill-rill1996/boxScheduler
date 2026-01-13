@@ -57,7 +57,7 @@ def main_menu_keyboard() -> InlineKeyboardBuilder:
     return keyboard
 
 
-def date_keyboard(active_date: dict) -> InlineKeyboardBuilder:
+def date_keyboard(active_date: dict[str, int]) -> InlineKeyboardBuilder:
     """Клавиатура с датами и кол-вом мероприятий"""
     keyboard = InlineKeyboardBuilder()
 
