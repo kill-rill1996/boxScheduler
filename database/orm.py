@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.schemas import AddUser, User, AddEvent, Event
+from database.schemas import AddUser, User, AddEvent, Event, EventUsers, Payment, AddPayment
 from database.tables import Base
 
 from logger import logger
@@ -113,6 +113,26 @@ class AsyncOrm:
                 return None
         except Exception as e:
             logger.error(f"Ошибка при получение пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def get_user_by_id(user_id: int, session: Any) -> User | None:
+        """Получение пользователя по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM users
+                WHERE id = $1
+                """,
+                user_id
+            )
+            if row:
+                return User.model_validate(row)
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"Ошибка при получение пользователя id {user_id}: {e}")
+
             
     @staticmethod
     async def create_event(event: AddEvent, session: Any) -> int:
@@ -204,3 +224,151 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении собыытия по id {event_id}: {e}")
+
+    @staticmethod
+    async def get_event_with_users(event_id: int, session: Any) -> EventUsers:
+        """Получение события с пользователями"""
+        try:
+            event_row = await session.fetchrow(
+                """
+                SELECT * FROM events 
+                WHERE id = $1
+                """,
+                event_id
+            )
+            event: EventUsers = EventUsers.model_validate(event_row)
+
+            # Получение пользователей в событии
+            users_rows = await session.fetch(
+                """
+                SELECT * 
+                FROM users AS u
+                JOIN events_users AS eu ON eu.user_id = u.id
+                WHERE eu.event_id = $1
+                ORDER BY u.firstname
+                """,
+                event_id
+            )
+            users = [User.model_validate(row) for row in users_rows]
+            event.users = users
+
+            # Получение резерва для события
+            reserved_rows = await session.fetch(
+                """
+                SELECT * 
+                FROM users AS u
+                JOIN reserved AS r ON r.user_id = u.id
+                WHERE r.event_id = $1
+                ORDER BY r.created_at ASC
+                """,
+                event_id
+            )
+            event.reserved = [User.model_validate(row) for row in reserved_rows]
+            return event
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении события {event_id} с пользователями: {e}")
+
+    @staticmethod
+    async def get_payment(tg_id: str, event_id: int, session: Any) -> Payment | None:
+        """Получение платежа пользователя на событие"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM payments AS p
+                JOIN users AS u ON p.user_id = u.id
+                WHERE u.tg_id = $1 AND p.event_id = $2 
+                """,
+                tg_id, event_id
+            )
+            if row:
+                return Payment.model_validate(row)
+            return None
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении платежа пользователя tg_id {tg_id} на событие {event_id}: {e}")
+
+    @staticmethod
+    async def create_payment(payment: AddPayment, session: Any) -> None:
+        """Создание платежа"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO payments (user_id, event_id, paid, paid_confirm)
+                VALUES ($1, $2, $3, $4)
+                """,
+                payment.user_id, payment.event_id, payment.paid, payment.paid_confirm
+            )
+            logger.info(f"Создан платеж пользователя id {payment.user_id} на событие {payment.event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка создания платежа пользователя id {payment.user_id} на событие {payment.event_id}: {e}")
+            raise
+
+    @staticmethod
+    async def update_payment_status(event_id: int, user_id: int, session: Any) -> None:
+        """Обновление статуса платежа"""
+        try:
+            await session.execute(
+                """
+                UPDATE payments
+                SET paid_confirm = true
+                WHERE event_id = $1 AND user_id = $2
+                """,
+                event_id, user_id
+            )
+            logger.info(f"Статус платежа пользователя {user_id} на событие {event_id} изменен на true")
+        except Exception as e:
+            logger.error(f"Ошибка при изменении статуса платежа пользователя {user_id} на событие {event_id}: {e}")
+            raise
+
+    @staticmethod
+    async def delete_payment(event_id: int, user_id: int, session: Any) -> None:
+        """Удаление платежа"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM payments
+                WHERE event_id = $1 AND user_id = $2
+                """,
+                event_id, user_id
+            )
+            logger.info(f"Платеж пользователя {user_id} на событие {event_id} удален")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении платежа пользователя {user_id} на событие {event_id}: {e}")
+
+    @staticmethod
+    async def create_reserve(event_id: int, user_id: int, session: Any) -> None:
+        """Создание записи в резерве"""
+        try:
+            created_at = datetime.datetime.now()
+
+            await session.execute(
+                """
+                INSERT INTO reserved (event_id, user_id, created_at)
+                VALUES ($1, $2, $3)
+                """,
+                event_id, user_id, created_at
+            )
+            logger.info(f"Пользователь id {user_id} записан в резерв события {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при записи пользователя id {user_id} в резерв события {event_id}: {e}")
+            raise
+
+    @staticmethod
+    async def create_event_user(event_id: int, user_id: int, session: Any) -> None:
+        """Создание events_users"""
+        try:
+            created_at = datetime.datetime.now()
+
+            await session.execute(
+                """
+                INSERT INTO events_users (event_id, user_id, created_at)
+                VALUES ($1, $2, $3)
+                """,
+                event_id, user_id, created_at
+            )
+            logger.info(f"Пользователь id {user_id} записан в основу события {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при записи пользователя id {user_id} в основу события {event_id}: {e}")
+            raise

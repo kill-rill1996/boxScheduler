@@ -33,3 +33,19 @@ class AddEvent(BaseModel):
 
 class Event(AddEvent):
     id: int
+
+
+class EventUsers(Event):
+    users: list[User] = []
+    reserved: list[User] = []
+
+
+class AddPayment(BaseModel):
+    paid: bool
+    paid_confirm: bool
+    user_id: int
+    event_id: int
+
+
+class Payment(AddPayment):
+    id: int

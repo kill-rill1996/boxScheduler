@@ -11,17 +11,18 @@ from src.middlewares import DatabaseMiddleware
 from settings import settings
 from logger import logger
 from src.routers import main_router
+from src import buttons as btn
 
 
 
 async def set_commands(bot: io.Bot):
     """Перечень команд для бота"""
     commands = [
-        BotCommand(command="menu", description="👨🏻‍💻 Главное меню"),
-        BotCommand(command="players", description="👥 Игроки"),
-        BotCommand(command="help", description="❓ Инструкция и поддержка"),
-        BotCommand(command="add_event", description="📌 Добавить событие"),
-        BotCommand(command="events", description="⚙️ Управление событиями"),
+        BotCommand(command="menu", description=f"{btn.MAIN_MENU}"),
+        BotCommand(command="players", description=f"{btn.PLAYERS}"),
+        BotCommand(command="help", description=f"{btn.HELP}"),
+        BotCommand(command="add_event", description=f"{btn.ADD_EVENT}"),
+        BotCommand(command="events", description=f"{btn.MANAGE_EVENT}"),
     ]
     await bot.set_my_commands(commands, BotCommandScopeDefault())
 

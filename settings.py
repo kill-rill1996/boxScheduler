@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     bot_token: str = Field()
     admins: list = Field()
     admin_tg_username: str = Field()
+    admin_tg_id: str = Field()
+    admin_phone: str = Field()
 
     # admin panel
     secret_key: str = Field()
