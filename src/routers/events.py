@@ -108,7 +108,7 @@ async def event_details(callback: CallbackQuery, session: Any):
         back_callback=f"events-date|{date_str}"
     )
 
-    await callback.message.answer(msg, reply_markup=kb.as_markup(), disable_web_page_preview=True)
+    await callback.message.edit_text(msg, reply_markup=kb.as_markup(), disable_web_page_preview=True)
 
 
 @router.callback_query(or_f(F.data.split("|")[0] == "reg-user", F.data.split("|")[0] == "reg-user-reserve"))

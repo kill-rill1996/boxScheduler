@@ -39,7 +39,7 @@ async def confirm_payment(callback: CallbackQuery, session: Any):
         # Подтверждение оплаты
         if status == "ok":
             # Обновляем статус платежа
-            await AsyncOrm.update_payment_status(user_id, event_id, session)
+            await AsyncOrm.update_payment_status(event_id, user_id, session)
             logger.info(f"Администратор {callback.from_user.id} подтвердил платеж пользователя {user_id} на событие {event_id}")
 
             # Запись в резерв

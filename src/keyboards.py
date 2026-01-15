@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from database.schemas import EventUsers
 from src import buttons as btn
 from src.utils import get_weekday_from_date
 
@@ -83,4 +84,18 @@ def date_keyboard(active_date: dict[str, int]) -> InlineKeyboardBuilder:
     )
 
     keyboard.adjust(1)
+    return keyboard
+
+
+def admin_event_keyboard(event: EventUsers) -> InlineKeyboardBuilder:
+    """Клавиатура карточки события для администратора"""
+    keyboard = InlineKeyboardBuilder()
+
+    if event.users:
+        for idx, user in enumerate(event.users, start=1):
+            keyboard.row(InlineKeyboardButton(text=f"{idx}", callback_data=f"admin-event-user|{event.id}|{user.id}"))
+        keyboard.adjust(3)
+
+    keyboard.row(InlineKeyboardButton(text=f"🗑️ Удалить мероприятие", callback_data=f"admin-event-delete|{event.id}"))
+    keyboard.row(InlineKeyboardButton(text=f"🔙 назад", callback_data="admin-events"))
     return keyboard

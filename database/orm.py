@@ -155,6 +155,33 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def get_events(session: Any, only_active: bool = False) -> List[Event] | None:
+        """Получение событий активных/всех"""
+        try:
+            if only_active:
+                rows = await session.fetch(
+                    """
+                    SELECT *
+                    FROM events
+                    WHERE active = true
+                    ORDER BY date
+                    """
+                )
+            else:
+                rows = await session.fetch(
+                    """
+                    SELECT *
+                    FROM events
+                    ORDER BY date
+                    """
+                )
+            events = [Event.model_validate(row) for row in rows]
+            return events
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех событий: {e}")
+
+
+    @staticmethod
     async def get_upcoming_events(session: Any, only_active: bool = True) -> list[Event] | None:
         """Получает события на ближайшие N дней"""
         now = datetime.datetime.today()
@@ -227,7 +254,7 @@ class AsyncOrm:
 
     @staticmethod
     async def get_event_with_users(event_id: int, session: Any) -> EventUsers:
-        """Получение события с пользователями"""
+        """Получение события с пользователями и резервом"""
         try:
             event_row = await session.fetchrow(
                 """
@@ -268,6 +295,27 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении события {event_id} с пользователями: {e}")
+
+    @staticmethod
+    async def delete_user_from_event(event_id: int, user_id: int, session: Any) -> None:
+        """Удаление пользователя с события"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM events_users
+                WHERE event_id = $1 AND user_id = $2
+                """,
+                event_id, user_id
+            )
+            logger.info(f"Пользователь id {user_id} удален с события id {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении пользователя id {user_id} с события id {event_id}: {e}")
+            raise
+
+    @staticmethod
+    async def transfer_user_from_reserve(event_id: int, user_id: int, session: Any) -> None:
+        """Перемещение пользователя из резерва в основу"""
+        pass
 
     @staticmethod
     async def get_payment(tg_id: str, event_id: int, session: Any) -> Payment | None:

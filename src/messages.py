@@ -23,7 +23,7 @@ def user_profile_message(user: User) -> str:
 
     return message
 
-def event_card(event: EventUsers, payment: Payment | None) -> str:
+def event_card(event: EventUsers, payment: Payment | None, for_admin: bool = False) -> str:
     """Карточка события"""
     date = convert_date_named_month(event.date)
     time = convert_time(event.date)
@@ -46,7 +46,7 @@ def event_card(event: EventUsers, payment: Payment | None) -> str:
         # Пользователь зарегистрирован на событие
         if payment.user_id in [user.id for user in event.users]:
             message += f"✅ <b>Вы записаны на событие \"{event.type}\"</b>\n\n"
-        # Пользователь зарегистрирован в резерв
+        # Пользователь зарегистрирован в резерв TODO не отрабатывает почему-то
         elif payment.user_id in [user.id for user in event.reserved]:
             message += f"📝 <b>Вы записаны в резерв на событие \"{event.type}\"</b>\n\n"
 
@@ -60,16 +60,27 @@ def event_card(event: EventUsers, payment: Payment | None) -> str:
     # # если участники уже есть
     if event.users:
         message += "<b>Участники:</b>\n"
+
         for idx, user in enumerate(event.users, 1):
-            message += f"<b>{idx}.</b> <a href='tg://user?id={user.tg_id}'>{user.firstname} {user.lastname}</a>\n"
+            # Для админа
+            if for_admin:
+                message += f"<b>{idx}.</b> <a href='tg://user?id={user.tg_id}'>{user.firstname} {user.lastname}</a>\n"
+            # Для пользователей
+            else:
+                message += f"<b>{idx}.</b> {user.firstname} {user.lastname}\n"
 
     # если есть резерв
     if event.reserved:
         message += "\n<b>Резерв:</b>\n"
 
         for idx, reserve_user in enumerate(event.reserved, 1):
-            message += f"<b>{idx}.</b> <a href='tg://user?id={reserve_user.tg_id}'>{reserve_user.firstname} {reserve_user.lastname}</a> " \
-                       f"{f'({settings.levels[reserve_user.level]})' if reserve_user.level else ''}\n"
+            # Для админа
+            if for_admin:
+                message += f"<b>{idx}.</b> <a href='tg://user?id={reserve_user.tg_id}'>{reserve_user.firstname} {reserve_user.lastname}</a> " \
+                           f"{f'({settings.levels[reserve_user.level]})' if reserve_user.level else ''}\n"
+            # Для пользователей
+            else:
+                message += f"<b>{idx}.</b> {reserve_user.firstname} {reserve_user.lastname}\n"
 
     return message
 
