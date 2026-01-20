@@ -300,7 +300,7 @@ class AsyncOrm:
     async def get_events_for_user(user_id: int, session: Any) -> List[EventUsersPayment]:
         """Получение мероприятий пользователя"""
         try:
-            # Получаем события
+            # Получаем основные события
             events_rows = await session.fetch(
                 """
                 SELECT e.*
@@ -314,8 +314,27 @@ class AsyncOrm:
             )
             events = [EventUsersPayment.model_validate(row) for row in events_rows]
 
-            # Получаем платежи
-            for e in events:
+            # Получаем резервные события пользователя
+            reserved_rows = await session.fetch(
+                """
+                SELECT e.*
+                FROM events AS e
+                JOIN reserved AS r ON e.id = r.event_id
+                JOIN payments AS p ON e.id = p.event_id
+                WHERE r.user_id = $1 AND e.active = true
+                ORDER BY e.date ASC
+                """,
+                user_id
+            )
+            reserved = [EventUsersPayment.model_validate(row) for row in reserved_rows]
+
+            # Сортируем все события
+            all_events = events + reserved
+            all_events = sorted(all_events, key=lambda event: event.date)
+
+            # Получаем платеж, участников события и резервы для события
+            for e in all_events:
+                # Платеж
                 payment_row = await session.fetchrow(
                     """
                     SELECT * 
@@ -327,7 +346,35 @@ class AsyncOrm:
                 payment = Payment.model_validate(payment_row)
                 e.payment = payment
 
-            return events
+                # Участники
+                users_rows = await session.fetch(
+                    """
+                    SELECT u.*
+                    FROM users AS u
+                    JOIN events_users AS eu ON eu.user_id = u.id
+                    WHERE eu.event_id = $1
+                    ORDER BY u.firstname
+                    """,
+                    e.id
+                )
+                users = [User.model_validate(row) for row in users_rows]
+                e.users = users
+
+                # Резерв
+                reserved_users_rows = await session.fetch(
+                    """
+                    SELECT u.*
+                    FROM users AS u
+                    JOIN reserved AS r ON r.user_id = u.id
+                    WHERE r.event_id = $1
+                    ORDER BY r.created_at ASC
+                    """,
+                    e.id
+                )
+                reserved_users = [User.model_validate(row) for row in reserved_users_rows]
+                e.reserved = reserved_users
+
+            return all_events
         except Exception as e:
             logger.error(f"Ошибка при получении событий пользователя с платежами {user_id}: {e}")
 

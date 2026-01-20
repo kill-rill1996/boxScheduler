@@ -54,6 +54,11 @@ def convert_date_named_month(date: datetime) -> str:
     return f"{date.date().day} {months[date.date().month]} {date.date().strftime('%Y')}"
 
 
+def convert_date(date: datetime) -> str:
+    """Перевод даты в формат для вывода"""
+    return date.date().strftime("%d.%m.%Y")
+
+
 def convert_time(date: datetime) -> str:
     """Перевод времени в str формат для вывода"""
     return date.time().strftime("%H:%M")
