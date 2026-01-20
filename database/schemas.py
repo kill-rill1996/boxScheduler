@@ -34,6 +34,9 @@ class AddEvent(BaseModel):
 class Event(AddEvent):
     id: int
 
+class EventUsersIds(Event):
+    registered_users: list[int]
+    reserved_users: list[int]
 
 class EventUsers(Event):
     users: list[User] = []

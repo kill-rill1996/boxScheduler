@@ -5,7 +5,8 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.schemas import AddUser, User, AddEvent, Event, EventUsers, Payment, AddPayment, EventUsersPayment
+from database.schemas import AddUser, User, AddEvent, Event, EventUsers, Payment, AddPayment, EventUsersPayment, \
+    EventUsersIds
 from database.tables import Base
 
 from logger import logger
@@ -235,6 +236,43 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получений событий за {date}: {e}")
+
+    @staticmethod
+    async def get_events_by_date_with_users(date: datetime.datetime, session: Any, only_active: bool = True) -> list[EventUsersIds] | None:
+        """Получение событий по дате с записанными и резервными пользователями"""
+        min_date = datetime.datetime.combine(date, datetime.datetime.min.time())
+        max_date = min_date + datetime.timedelta(days=1)
+        logger.info(f"min date {min_date}, max_date {max_date}")
+
+        try:
+            rows = await session.fetch(
+                """
+                SELECT e.*,
+                    COALESCE(
+                        ARRAY_AGG(DISTINCT eu.user_id) FILTER (WHERE eu.user_id IS NOT NULL),
+                        ARRAY[]::integer[]
+                    ) as registered_users,
+                    COALESCE(
+                        ARRAY_AGG(DISTINCT r.user_id) FILTER (WHERE r.user_id IS NOT NULL),
+                        ARRAY[]::integer[]
+                    ) as reserved_users
+                FROM events e
+                LEFT JOIN events_users eu ON e.id = eu.event_id
+                LEFT JOIN reserved r ON e.id = r.event_id
+                WHERE e.date >= $1 AND e.date <= $2
+                GROUP BY e.id
+                ORDER BY e.date
+                """,
+                min_date, max_date
+            )
+            logger.info(f"rows: {rows}")
+            events = [EventUsersIds.model_validate(row) for row in rows]
+            logger.info(f"events: {events}")
+            return events
+
+        except Exception as e:
+            logger.error(f"Ошибка при получений событий за {date} с пользователями (основными и резервными): {e}")
+
 
     @staticmethod
     async def get_event_by_id(event_id: int, session: Any) -> Event | None:
