@@ -72,6 +72,7 @@ class Event(Base):
 class EventsUsers(Base):
     """Many-to-many relationship"""
     __tablename__ = "events_users"
+
     created_at: Mapped[datetime.datetime]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     event_id: Mapped[int] = mapped_column(ForeignKey("events.id", ondelete="CASCADE"), primary_key=True)

@@ -45,13 +45,18 @@ async def show_event_in_date(callback: CallbackQuery, session: Any):
     """Вывод событий в определенную дату"""
     await callback.answer()
 
+    tg_id = str(callback.from_user.id)
+
     # Получаем дату в str формате
     date_str = callback.data.split("|")[1]
     # Переводим в объект date
     date = datetime.strptime(date_str, "%d.%m.%Y")
 
+    # Получаем пользователя
+    user: User = await AsyncOrm.get_user_by_tg_id(tg_id, session)
+
     # Получаем события в этот день
-    events: list[Event] = await AsyncOrm.get_events_by_date(date, session)
+    events: list[Event] = await AsyncOrm.get_events_by_date_with_users(date, session)
 
     # Переводим дату в формат для вывода в сообщение
     converted_date = convert_date_named_month(date)
