@@ -108,7 +108,7 @@ async def delete_user_from_event_confirmed(callback: CallbackQuery, session: Any
         await callback.message.edit_text(f"{btn.INFO} Ошибка при удалении участника. Повторите запрос позже")
         return
 
-    # Добор из резерва TODO
+    # Добор из резерва
     if event.reserved:
         user_for_transfer = event.reserved[0]
 

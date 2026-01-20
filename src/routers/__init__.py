@@ -7,6 +7,7 @@ from .events import router as events_router
 from .add_events import router as add_events_router
 from .admin import router as admin_router
 from .edit_events import router as edit_events_router
+from .my_events import router as my_events_router
 
 main_router = Router()
 
@@ -20,4 +21,5 @@ main_router.include_routers(
     events_router,
     admin_router,
     edit_events_router,
+    my_events_router,
 )

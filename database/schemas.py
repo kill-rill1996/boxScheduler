@@ -49,3 +49,12 @@ class AddPayment(BaseModel):
 
 class Payment(AddPayment):
     id: int
+
+
+class EventUsersPayment(EventUsers):
+    payment: Payment | None = None
+
+
+
+
+

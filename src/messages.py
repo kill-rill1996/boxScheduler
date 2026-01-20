@@ -6,6 +6,7 @@ from src.utils import convert_date_named_month, convert_time
 
 from settings import settings
 
+
 def main_menu_message() -> str:
     """Сообщение главного меню"""
     message = f"<b>Главное меню</b>\n\n" \
@@ -46,7 +47,7 @@ def event_card(event: EventUsers, payment: Payment | None, for_admin: bool = Fal
         # Пользователь зарегистрирован на событие
         if payment.user_id in [user.id for user in event.users]:
             message += f"✅ <b>Вы записаны на событие \"{event.type}\"</b>\n\n"
-        # Пользователь зарегистрирован в резерв TODO не отрабатывает почему-то
+        # Пользователь зарегистрирован в резерв
         elif payment.user_id in [user.id for user in event.reserved]:
             message += f"📝 <b>Вы записаны в резерв на событие \"{event.type}\"</b>\n\n"
 

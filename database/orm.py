@@ -5,7 +5,7 @@ from typing import Any, List
 import asyncpg
 
 from database.database import async_engine
-from database.schemas import AddUser, User, AddEvent, Event, EventUsers, Payment, AddPayment
+from database.schemas import AddUser, User, AddEvent, Event, EventUsers, Payment, AddPayment, EventUsersPayment
 from database.tables import Base
 
 from logger import logger
@@ -268,7 +268,7 @@ class AsyncOrm:
             # Получение пользователей в событии
             users_rows = await session.fetch(
                 """
-                SELECT * 
+                SELECT u.* 
                 FROM users AS u
                 JOIN events_users AS eu ON eu.user_id = u.id
                 WHERE eu.event_id = $1
@@ -282,7 +282,7 @@ class AsyncOrm:
             # Получение резерва для события
             reserved_rows = await session.fetch(
                 """
-                SELECT * 
+                SELECT u.* 
                 FROM users AS u
                 JOIN reserved AS r ON r.user_id = u.id
                 WHERE r.event_id = $1
@@ -295,6 +295,41 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении события {event_id} с пользователями: {e}")
+
+    @staticmethod
+    async def get_events_for_user(user_id: int, session: Any) -> List[EventUsersPayment]:
+        """Получение мероприятий пользователя"""
+        try:
+            # Получаем события
+            events_rows = await session.fetch(
+                """
+                SELECT e.*
+                FROM events AS e
+                JOIN events_users AS eu ON e.id = eu.event_id
+                JOIN payments AS p ON e.id = p.event_id
+                WHERE eu.user_id = $1 AND e.active = true
+                ORDER BY e.date ASC
+                """,
+                user_id
+            )
+            events = [EventUsersPayment.model_validate(row) for row in events_rows]
+
+            # Получаем платежи
+            for e in events:
+                payment_row = await session.fetchrow(
+                    """
+                    SELECT * 
+                    FROM payments
+                    WHERE user_id = $1 AND event_id = $2
+                    """,
+                    user_id, e.id
+                )
+                payment = Payment.model_validate(payment_row)
+                e.payment = payment
+
+            return events
+        except Exception as e:
+            logger.error(f"Ошибка при получении событий пользователя с платежами {user_id}: {e}")
 
     @staticmethod
     async def delete_user_from_event(event_id: int, user_id: int, session: Any) -> None:
