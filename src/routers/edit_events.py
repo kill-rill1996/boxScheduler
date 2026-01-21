@@ -112,7 +112,7 @@ async def delete_user_from_event_confirmed(callback: CallbackQuery, session: Any
     if event.reserved:
         user_for_transfer = event.reserved[0]
 
-        # Переносим человека из резерва
+        # Переносим человека из резерва TODO не тестирована
         try:
             await AsyncOrm.transfer_user_from_reserve(event_id, user_for_transfer.id, session)
 
