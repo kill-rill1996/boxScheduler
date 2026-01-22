@@ -156,6 +156,22 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def delete_event(event_id: int, session: Any) -> None:
+        """Удаление события"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM events
+                WHERE id = $1
+                """,
+                event_id
+            )
+            logger.info(f"Событие {event_id} удалено")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении события id {event_id}: {e}")
+            raise
+
+    @staticmethod
     async def get_events(session: Any, only_active: bool = False) -> List[Event] | None:
         """Получение событий активных/всех"""
         try:
@@ -441,7 +457,21 @@ class AsyncOrm:
             logger.error(f"Ошибка при переведении пользователя id {user_id} из резерва в основу события id {event_id}: {e}")
             raise
 
-
+    @staticmethod
+    async def unreg_user_reserve(event_id: int, user_id: int, session: Any) -> None:
+        """Удаление пользователя из резерва"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM reserved
+                WHERE event_id = $1 AND user_id = $2
+                """,
+                event_id, user_id
+            )
+            logger.info(f"Пользователь id {user_id} удален с события id {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении пользователя id {user_id} с события id {event_id}: {e}")
+            raise
 
     @staticmethod
     async def get_payment(tg_id: str, event_id: int, session: Any) -> Payment | None:
