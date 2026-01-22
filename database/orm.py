@@ -171,6 +171,22 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def delete_event(event_id: int, session: Any) -> None:
+        """Удаление события"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM events
+                WHERE id = $1
+                """,
+                event_id
+            )
+            logger.info(f"Событие {event_id} удалено")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении события id {event_id}: {e}")
+            raise
+
+    @staticmethod
     async def get_events(session: Any, only_active: bool = False) -> List[Event] | None:
         """Получение событий активных/всех"""
         try:
@@ -383,7 +399,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении события {event_id} с пользователями: {e}")
 
     @staticmethod
-    async def get_events_for_user(user_id: int, session: Any) -> List[EventUsersPayment]:
+    async def get_events_payments_for_user(user_id: int, session: Any) -> List[EventUsersPayment]:
         """Получение мероприятий пользователя"""
         try:
             # Получаем основные события
@@ -391,76 +407,57 @@ class AsyncOrm:
                 """
                 SELECT e.*
                 FROM events AS e
-                JOIN events_users AS eu ON e.id = eu.event_id
                 JOIN payments AS p ON e.id = p.event_id
-                WHERE eu.user_id = $1 AND e.active = true
+                WHERE p.user_id = $1 AND e.active = true
                 ORDER BY e.date ASC
                 """,
                 user_id
             )
             events = [EventUsersPayment.model_validate(row) for row in events_rows]
 
-            # Получаем резервные события пользователя
-            reserved_rows = await session.fetch(
-                """
-                SELECT e.*
-                FROM events AS e
-                JOIN reserved AS r ON e.id = r.event_id
-                JOIN payments AS p ON e.id = p.event_id
-                WHERE r.user_id = $1 AND e.active = true
-                ORDER BY e.date ASC
-                """,
-                user_id
-            )
-            reserved = [EventUsersPayment.model_validate(row) for row in reserved_rows]
+            # Получаем платежи, участников и резерв для каждого события
+            for e in events:
+                    # Платежи
+                    payment_row = await session.fetchrow(
+                        """
+                        SELECT * 
+                        FROM payments
+                        WHERE user_id = $1 AND event_id = $2
+                        """,
+                        user_id, e.id
+                    )
+                    payment = Payment.model_validate(payment_row)
+                    e.payment = payment
 
-            # Сортируем все события
-            all_events = events + reserved
-            all_events = sorted(all_events, key=lambda event: event.date)
+                    # Участники
+                    users_rows = await session.fetch(
+                        """
+                        SELECT u.*
+                        FROM users AS u
+                        JOIN events_users AS eu ON eu.user_id = u.id
+                        WHERE eu.event_id = $1
+                        ORDER BY u.firstname
+                        """,
+                        e.id
+                    )
+                    users = [User.model_validate(row) for row in users_rows]
+                    e.users = users
 
-            # Получаем платеж, участников события и резервы для события
-            for e in all_events:
-                # Платеж
-                payment_row = await session.fetchrow(
-                    """
-                    SELECT * 
-                    FROM payments
-                    WHERE user_id = $1 AND event_id = $2
-                    """,
-                    user_id, e.id
-                )
-                payment = Payment.model_validate(payment_row)
-                e.payment = payment
+                    # Резерв
+                    reserved_users_rows = await session.fetch(
+                        """
+                        SELECT u.*
+                        FROM users AS u
+                        JOIN reserved AS r ON r.user_id = u.id
+                        WHERE r.event_id = $1
+                        ORDER BY r.created_at ASC
+                        """,
+                        e.id
+                    )
+                    reserved_users = [User.model_validate(row) for row in reserved_users_rows]
+                    e.reserved = reserved_users
+            return events
 
-                # Участники
-                users_rows = await session.fetch(
-                    """
-                    SELECT u.*
-                    FROM users AS u
-                    JOIN events_users AS eu ON eu.user_id = u.id
-                    WHERE eu.event_id = $1
-                    ORDER BY u.firstname
-                    """,
-                    e.id
-                )
-                users = [User.model_validate(row) for row in users_rows]
-                e.users = users
-
-                # Резерв
-                reserved_users_rows = await session.fetch(
-                    """
-                    SELECT u.*
-                    FROM users AS u
-                    JOIN reserved AS r ON r.user_id = u.id
-                    WHERE r.event_id = $1
-                    ORDER BY r.created_at ASC
-                    """,
-                    e.id
-                )
-                reserved_users = [User.model_validate(row) for row in reserved_users_rows]
-                e.reserved = reserved_users
-
-            return all_events
         except Exception as e:
             logger.error(f"Ошибка при получении событий пользователя с платежами {user_id}: {e}")
 
@@ -502,7 +499,46 @@ class AsyncOrm:
     @staticmethod
     async def transfer_user_from_reserve(event_id: int, user_id: int, session: Any) -> None:
         """Перемещение пользователя из резерва в основу"""
-        pass
+        created_at = datetime.datetime.now()
+        try:
+            async with session.transaction():
+                # Записываем человека в основу
+                await session.execute(
+                    """
+                    INSERT INTO events_users (event_id, user_id, created_at)
+                    VALUES ($1, $2, $3)
+                    """,
+                    event_id, user_id, created_at
+                )
+
+                # Удаляем из резерва
+                await session.execute(
+                    """
+                    DELETE FROM reserved
+                    WHERE event_id = $1 AND user_id = $2
+                    """,
+                    event_id, user_id
+                )
+                logger.info(f"Пользователь id {user_id} переведен из резерва в основу события id {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при переведении пользователя id {user_id} из резерва в основу события id {event_id}: {e}")
+            raise
+
+    @staticmethod
+    async def unreg_user_reserve(event_id: int, user_id: int, session: Any) -> None:
+        """Удаление пользователя из резерва"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM reserved
+                WHERE event_id = $1 AND user_id = $2
+                """,
+                event_id, user_id
+            )
+            logger.info(f"Пользователь id {user_id} удален с события id {event_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при удалении пользователя id {user_id} с события id {event_id}: {e}")
+            raise
 
     @staticmethod
     async def get_payment(tg_id: str, event_id: int, session: Any) -> Payment | None:

@@ -10,6 +10,7 @@ from aiogram.types import Message, CallbackQuery
 from database.orm import AsyncOrm
 from database.schemas import AddEvent, Event, EventUsers
 from logger import logger
+from settings import settings
 from src.messages import event_card
 from src.states import AddEventFSM
 from src.keyboards import cancel_keyboard, get_inline_keyboard, admin_event_keyboard
@@ -132,7 +133,91 @@ async def delete_user_from_event_confirmed(callback: CallbackQuery, session: Any
     event: EventUsers = await AsyncOrm.get_event_with_users(event_id, session)
     msg = event_card(event, payment=None, for_admin=True) + "\nЧтобы удалить участника с события, нажмите кнопку с соответствующим номером участника"
     keyboard = admin_event_keyboard(event)
-    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
+    await callback.message.answer(msg, reply_markup=keyboard.as_markup(), disable_web_page_preview=True)
+
+
+# DELETE EVENT
+@router.callback_query(F.data.split("|")[0] == "admin-event-delete")
+async def delete_event(callback: CallbackQuery, session: Any):
+    """Удаление события"""
+    await callback.answer()
+
+    # Получаем событие
+    event_id = int(callback.data.split("|")[1])
+    event: EventUsers = await AsyncOrm.get_event_with_users(event_id, session)
+
+    # Сообщение
+    date = utils.convert_date(event.date)
+    time = utils.convert_time(event.date)
+    msg = f"Вы действительно хотите удалить событие <b>{event.type} \"{event.title}\"</b> {date} в {time}?"
+
+    # Клавиатура
+    buttons = {
+        "Да": f"admin-delete-event-confirm|{event_id}",
+        "Нет": f"admin-event|{event_id}"
+    }
+    keyboard = get_inline_keyboard(buttons)
+
+    await callback.message.edit_text(msg, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "admin-delete-event-confirm")
+async def delete_event_confirm(callback: CallbackQuery, session: Any):
+    """Подтверждение удаления события"""
+    await callback.answer()
+
+    # Получаем событие
+    event_id = int(callback.data.split("|")[1])
+    event: EventUsers = await AsyncOrm.get_event_with_users(event_id, session)
+
+    # Удаляем событие
+    try:
+        await AsyncOrm.delete_event(event_id, session)
+
+        # Оповещаем админа
+        await callback.message.edit_text("Событие удалено ✅")
+
+        # Возврат админа к списку событий
+        events: list[Event] = await AsyncOrm.get_events(session, only_active=True)
+        msg = "События" if events else "Событий пока нет"
+        buttons = {}
+        for e in events:
+            date = utils.convert_date_named_month(e.date)
+            time = utils.convert_time(e.date)
+            key = f"{date} {time} {e.type}"
+            buttons[key] = f"admin-event|{e.id}"
+        keyboard = get_inline_keyboard(buttons)
+        await callback.message.answer(msg, reply_markup=keyboard.as_markup())
+
+        admin_tg_id = str(callback.from_user.id)
+        date = utils.convert_date(event.date)
+        time = utils.convert_time(event.date)
+        logger.info(f"Администратор {admin_tg_id} удалил событие {event.type} {event.title} {date} {time}")
+
+        # Оповещаем пользователей
+        user_message = f"🔔 <b>Автоматическое уведомление</b>\n\n" \
+                  f"Событие <b>\"{event.title}\"</b>, запланированное <b>{date}</b> в <b>{time}</b>, " \
+                  f"<b>отменено администратором</b>\n\n" \
+                  f"По вопросу возврата оплаты обращайтесь к администратору @{settings.admin_tg_username}"
+
+        # Оповещаем пользователей основы
+        for user in event.users:
+            try:
+                await callback.bot.send_message(user.tg_id, user_message)
+            except Exception as e:
+                logger.error(f"Ошибка оповещения основного пользователя id {user.id} об отмене события id {event_id}: {e}")
+
+        # Оповещаем пользователей резерва
+        for user in event.reserved:
+            try:
+                await callback.bot.send_message(user.tg_id, user_message)
+            except Exception as e:
+                logger.error(f"Ошибка оповещения резервного пользователя id {user.id} об отмене события id {event_id}: {e}")
+
+    except Exception:
+        await callback.message.edit_text(f"{btn.INFO} Ошибка при удалении события. Повторите запрос позже")
+        return
+
 
 
 
