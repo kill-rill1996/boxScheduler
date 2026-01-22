@@ -1,8 +1,8 @@
 import datetime
 
-from database.schemas import User, Event, EventUsers, Payment
+from database.schemas import User, Event, EventUsers, Payment, EventUsersIds
 from src import buttons as btn
-from src.utils import convert_date_named_month, convert_time
+from src.utils import convert_date_named_month, convert_time, convert_date
 
 from settings import settings
 
@@ -105,6 +105,26 @@ def invoice_message_for_user(event: EventUsers, to_reserve: bool = False) -> str
                f"После завершения оплаты нажмите кнопку <b>\"Оплатил(а)\".</b>"
     return message
 
+def notify_user_about_event(event: Event) -> str:
+    """Сообщение с напоминанием о событии"""
+    # TODO что с датой
+    event_date = convert_date(event.date)
+    event_time = convert_time(event.date)
+    message = f"🔔 <b>Автоматическое уведомление</b>\n\n" \
+              f"Напоминаем, что вы записались на событие <b>\"{event.title}\"</b>, " \
+              f"которое пройдет <b>{event_date}</b> в <b>{event_time}</b>\n\n" \
+              f"Если у вас не получится прийти, пожалуйста, сообщите об этом администратору @{settings.admin_tg_username}"
 
+    return message
 
+def notify_canceled_event(event: EventUsersIds) -> str:
+    """Сообщение об отмене мероприятия в связи с нехваткой участников"""
+    # TODO что с датой
+    event_date = convert_date(event.date)
+    event_time = convert_time(event.date)
+    message = f"🔔 <b>Автоматическое уведомление</b>\n\n" \
+              f"Событие <b>\"{event.title}\"</b>, запланированное <b>{event_date}</b> в <b>{event_time}</b>, " \
+              f"<b>отменено</b> в связи с нехваткой участников\n\n" \
+              f"По вопросу возврата оплаты обращайтесь к администратору @{settings.admin_tg_username}"
 
+    return message

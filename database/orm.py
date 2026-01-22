@@ -134,6 +134,21 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получение пользователя id {user_id}: {e}")
 
+    @staticmethod
+    async def get_user_tg_id(user_id: int, session: Any) -> str | None:
+        """Получение tg_id пользователя"""
+        try:
+            tg_id = await session.fetchval(
+                """
+                SELECT tg_id FROM users
+                WHERE id = $1
+                """,
+                user_id
+            )
+            return tg_id
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении tg_id пользователя id '{user_id}': {e}")
             
     @staticmethod
     async def create_event(event: AddEvent, session: Any) -> int:
@@ -180,6 +195,41 @@ class AsyncOrm:
             return events
         except Exception as e:
             logger.error(f"Ошибка при получении всех событий: {e}")
+
+    @staticmethod
+    async def delete_old_events(days_passed: int, session: Any) -> None:
+        """Удаление старых события по истечению N дней"""
+        expire_date = datetime.datetime.now() - datetime.timedelta(days=days_passed)
+
+        try:
+            await session.execute(
+                """
+                DELETE FROM events
+                WHERE date < $1 
+                """,
+                expire_date
+            )
+            logger.info(f"Удалены события с датой раньше чем {expire_date}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении старых событий: {e}")
+
+    @staticmethod
+    async def event_change_to_inactivity(event_id: int, session: Any) -> None:
+        """Изменение статуса события на неактивное"""
+        try:
+            await session.execute(
+                """
+                UPDATE events
+                SET active = false
+                WHERE id = $1
+                """,
+                event_id
+            )
+            logger.info(f"Событие {event_id} переведено в неактивное")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении статуса события {event_id} на неактивное:{e}")
 
 
     @staticmethod
@@ -238,7 +288,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при получений событий за {date}: {e}")
 
     @staticmethod
-    async def get_events_by_date_with_users(date: datetime.datetime, session: Any, only_active: bool = True) -> list[EventUsersIds] | None:
+    async def get_events_by_date_with_users(date: datetime.datetime, session: Any) -> list[EventUsersIds] | None:
         """Получение событий по дате с записанными и резервными пользователями"""
         min_date = datetime.datetime.combine(date, datetime.datetime.min.time())
         max_date = min_date + datetime.timedelta(days=1)
@@ -259,15 +309,13 @@ class AsyncOrm:
                 FROM events e
                 LEFT JOIN events_users eu ON e.id = eu.event_id
                 LEFT JOIN reserved r ON e.id = r.event_id
-                WHERE e.date >= $1 AND e.date <= $2
+                WHERE e.date >= $1 AND e.date <= $2 AND e.active = true
                 GROUP BY e.id
                 ORDER BY e.date
                 """,
                 min_date, max_date
             )
-            logger.info(f"rows: {rows}")
             events = [EventUsersIds.model_validate(row) for row in rows]
-            logger.info(f"events: {events}")
             return events
 
         except Exception as e:
@@ -433,6 +481,25 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def get_reserved_users(event_id: int, session: Any) -> list[User]:
+        """Получение резервных пользователей на событие"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT u.*
+                FROM reserved AS r
+                JOIN users AS u ON r.user_id = u.id
+                WHERE r.event_id = $1
+                """,
+                event_id
+            )
+            users = [User.model_validate(row) for row in rows]
+            return users
+
+        except Exception as e:
+            logger.error(f"Ошибка при получение резервных пользователей для события {event_id}: {e}")
+
+    @staticmethod
     async def transfer_user_from_reserve(event_id: int, user_id: int, session: Any) -> None:
         """Перемещение пользователя из резерва в основу"""
         pass
@@ -443,7 +510,7 @@ class AsyncOrm:
         try:
             row = await session.fetchrow(
                 """
-                SELECT *
+                SELECT u.*
                 FROM payments AS p
                 JOIN users AS u ON p.user_id = u.id
                 WHERE u.tg_id = $1 AND p.event_id = $2 

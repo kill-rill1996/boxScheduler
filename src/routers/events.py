@@ -9,7 +9,7 @@ from aiogram.types import CallbackQuery
 from aiogram.utils import keyboard
 
 from database.orm import AsyncOrm
-from database.schemas import Event, EventUsers, User, Payment, AddPayment
+from database.schemas import Event, EventUsers, User, Payment, AddPayment, EventUsersIds
 from src.keyboards import date_keyboard, get_inline_keyboard, main_menu_keyboard
 from src import utils
 from src import buttons as btn
@@ -56,7 +56,7 @@ async def show_event_in_date(callback: CallbackQuery, session: Any):
     user: User = await AsyncOrm.get_user_by_tg_id(tg_id, session)
 
     # Получаем события в этот день
-    events: list[Event] = await AsyncOrm.get_events_by_date_with_users(date, session)
+    events: list[EventUsersIds] = await AsyncOrm.get_events_by_date_with_users(date, session)
 
     # Переводим дату в формат для вывода в сообщение
     converted_date = convert_date_named_month(date)
@@ -69,7 +69,9 @@ async def show_event_in_date(callback: CallbackQuery, session: Any):
 
     # Создаем клавиатуру TODO доделать с записанными и резервом
     buttons = {
-        f"{event.date.astimezone(pytz.timezone('Europe/Moscow')).time().strftime('%H:%M')} {event.type}":
+        (f"{'✅️ ' if user.id in event.registered_users else ''}"
+         f"{'📝 ' if user.id in event.reserved_users else ''}"
+         f"{event.date.astimezone(pytz.timezone('Europe/Moscow')).time().strftime('%H:%M')} {event.type}"):
             f"all_events|{event.id}|{date_str}" for event in events
     }
     keyboard = get_inline_keyboard(buttons, in_row=1, back_callback="all_events")

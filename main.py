@@ -1,5 +1,5 @@
 import asyncio
-
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram.types import BotCommand, BotCommandScopeDefault
 
 import aiogram as io
@@ -7,11 +7,13 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
+from datetime import datetime
+
 from src.middlewares import DatabaseMiddleware
 from settings import settings
 from logger import logger
 from src.routers import main_router
-from src import buttons as btn
+from src import buttons as btn, schedulers
 
 
 
@@ -42,10 +44,28 @@ async def start_bot() -> None:
     storage = MemoryStorage()
     dp = io.Dispatcher(storage=storage)
 
+    # SCHEDULER
+    scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
+
+    # оповещение для пользователей + удаление старых неактивных событий 9 утра
+    scheduler.add_job(schedulers.run_every_day, trigger="cron", year='*', month='*', day="*", hour=9, minute=0,
+                      second=0, start_date=datetime.now(), kwargs={"bot": bot})
+
+    # проверка мероприятия на минимальное кол-во участников + перевод событий в неактивные
+    scheduler.add_job(schedulers.run_every_hour, trigger="cron", year='*', month='*', day="*", hour="*", minute=1,
+                      second=0, start_date=datetime.now(), kwargs={"bot": bot})
+
+    # # создание excel файла
+    # scheduler.add_job(apsched.create_players_excel, trigger="cron", year='*', month='*', day="*", hour="*",
+    #                   minute="*/10",
+    #                   second=0, start_date=datetime.now())
+
+    scheduler.start()
+
     # ROUTERS
     dp.include_router(main_router)
-    #
-    # # MIDDLEWARES
+
+    # MIDDLEWARES
     dp.message.middleware(DatabaseMiddleware())
     dp.callback_query.middleware(DatabaseMiddleware())
 
