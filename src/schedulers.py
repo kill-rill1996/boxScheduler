@@ -43,7 +43,9 @@ async def notify_users_about_events(bot: aiogram.Bot, session):
     tomorrow_date = datetime.datetime.now() + datetime.timedelta(days=1)
 
     # Получаем события на завтрашний день
-    events: list[EventUsersIds] = await AsyncOrm.get_events_by_date_with_users(tomorrow_date, session)
+    events: list[EventUsersIds] = await AsyncOrm.get_events_by_date_with_users(
+        date=tomorrow_date, session=session
+    )
 
     # Проходим по событиям
     for event in events:
@@ -68,8 +70,7 @@ async def update_events(bot: aiogram.Bot, session):
     events: list[Event] = await AsyncOrm.get_events(session, only_active=True)
 
     # Проверяем прошло ли событие
-    # TODO Перевод в москвоское время
-    current_date = datetime.datetime.now()
+    current_date = datetime.datetime.now() + datetime.timedelta(hours=3)
 
     for event in events:
         if current_date > event.date:
@@ -86,7 +87,7 @@ async def update_events(bot: aiogram.Bot, session):
                                 f"на событие {event.type} \"{event.title}\" {date} в {time}:\n\n"
 
                 for user in reserved_users:
-                    msg_for_admin += f"<a href='tg://user?id={user.user.tg_id}'>{user.user.firstname} {user.user.lastname}</a> - {event.price} руб.\n"
+                    msg_for_admin += f"<a href='tg://user?id={user.tg_id}'>{user.firstname} {user.lastname}</a> - {event.price} руб.\n"
 
                 # отправляем сообщение администратору
                 try:
@@ -96,10 +97,14 @@ async def update_events(bot: aiogram.Bot, session):
 
 async def check_min_users_count(bot: aiogram.Bot, session):
     """Проверка необходимого кол-ва участников на событие"""
-    current_date = datetime.datetime.now()
+    now_date = datetime.datetime.now() + datetime.timedelta(hours=3)
+    max_date = now_date + datetime.timedelta(hours=settings.check_min_count_before_event_hours)
 
-    # Получаем ближайшие события
-    events: list[EventUsersIds] = await AsyncOrm.get_events_by_date_with_users(current_date, session)
+    events: list[EventUsersIds] = await AsyncOrm.get_events_by_date_with_users(
+        min_date=now_date,
+        max_date=max_date,
+        session=session
+    )
 
     for event in events:
         # Если недостаточно зарегистрированных пользователей

@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     # events
     show_days: int = 10
     delete_old_events_days: int = 14
+    check_min_count_before_event_hours: int = 1
     weekdays: dict = WEEKDAYS
     address_url: str = "https://yandex.ru/navi/org/volleyball_city/9644230187/?ll=30.333934%2C59.993168&z=16"
     address: str = "Санкт-Петербург, Институтский пер., 5Н"

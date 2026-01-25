@@ -304,11 +304,15 @@ class AsyncOrm:
             logger.error(f"Ошибка при получений событий за {date}: {e}")
 
     @staticmethod
-    async def get_events_by_date_with_users(date: datetime.datetime, session: Any) -> list[EventUsersIds] | None:
+    async def get_events_by_date_with_users(session: Any,
+                                            date: datetime.datetime = None,
+                                            min_date: datetime.datetime = None,
+                                            max_date: datetime.datetime = None
+    ) -> list[EventUsersIds] | None:
         """Получение событий по дате с записанными и резервными пользователями"""
-        min_date = datetime.datetime.combine(date, datetime.datetime.min.time())
-        max_date = min_date + datetime.timedelta(days=1)
-        logger.info(f"min date {min_date}, max_date {max_date}")
+        if not (min_date and max_date):
+            min_date = datetime.datetime.combine(date, datetime.datetime.min.time())
+            max_date = min_date + datetime.timedelta(days=1)
 
         try:
             rows = await session.fetch(
@@ -546,7 +550,7 @@ class AsyncOrm:
         try:
             row = await session.fetchrow(
                 """
-                SELECT u.*
+                SELECT p.*
                 FROM payments AS p
                 JOIN users AS u ON p.user_id = u.id
                 WHERE u.tg_id = $1 AND p.event_id = $2 
