@@ -21,7 +21,7 @@ async def set_commands(bot: io.Bot):
     """Перечень команд для бота"""
     commands = [
         BotCommand(command="menu", description=f"{btn.MAIN_MENU}"),
-        BotCommand(command="players", description=f"{btn.PLAYERS}"),
+        BotCommand(command="users", description=f"{btn.PLAYERS}"),
         BotCommand(command="help", description=f"{btn.HELP}"),
         BotCommand(command="add_event", description=f"{btn.ADD_EVENT}"),
         BotCommand(command="events", description=f"{btn.MANAGE_EVENT}"),
@@ -56,10 +56,10 @@ async def start_bot() -> None:
     scheduler.add_job(schedulers.run_every_hour, trigger="cron", year='*', month='*', day="*", hour="*", minute=1,
                       second=0, start_date=datetime.now(), kwargs={"bot": bot})
 
-    # # создание excel файла
-    # scheduler.add_job(apsched.create_players_excel, trigger="cron", year='*', month='*', day="*", hour="*",
-    #                   minute="*/10",
-    #                   second=0, start_date=datetime.now())
+    # создание excel файла
+    scheduler.add_job(schedulers.create_users_excel, trigger="cron", year='*', month='*', day="*", hour="*",
+                      minute="*/10",
+                      second=0, start_date=datetime.now())
 
     scheduler.start()
 

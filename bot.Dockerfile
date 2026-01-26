@@ -13,5 +13,6 @@ COPY main.py /app
 COPY /src /app/src
 COPY /database /app/database
 COPY /logs /app/logs
+COPY /players /app/players
 COPY settings.py logger.py /app/
 

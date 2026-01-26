@@ -3,6 +3,8 @@ import datetime
 import aiogram
 import asyncpg
 import pytz
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side
 
 from database.orm import AsyncOrm
 from database.schemas import EventUsersIds, Event, User
@@ -123,4 +125,92 @@ async def check_min_users_count(bot: aiogram.Bot, session):
                     await bot.send_message(user_tg_id, msg)
                 except:
                     pass
+
+
+async def create_users_excel():
+    """Создание файла с пользователями"""
+    session = await asyncpg.connect(
+        user=settings.db.postgres_user,
+        host=settings.db.postgres_host,
+        password=settings.db.postgres_password,
+        port=settings.db.postgres_port,
+        database=settings.db.postgres_db
+    )
+
+    users = await AsyncOrm.get_all_users(session)
+    await write_excel_file(users)
+
+
+async def write_excel_file(data: list[User]) -> None:
+    """Создание файла"""
+    wb = Workbook()
+
+    # удаление лишнего листа
+    del wb["Sheet"]
+
+    # создание нового листа
+    wb.create_sheet("Users", index=0)
+    sheet = wb['Users']
+
+    # настройка стилей
+    font = Font(bold=True)
+    align_center = Alignment(horizontal="center")
+    border = Border(
+        left=Side(border_style="thin", color='FF000000'),
+        right=Side(border_style="thin", color='FF000000'),
+        top=Side(border_style="thin", color='FF000000'),
+        bottom=Side(border_style="thin", color='FF000000'),
+    )
+
+    # width
+    sheet.column_dimensions["A"].width = 10
+    sheet.column_dimensions["B"].width = 20
+    sheet.column_dimensions["C"].width = 20
+    sheet.column_dimensions["D"].width = 20
+
+    # header
+    sheet.append(["№ п/п", "Имя", "Фамилия", "Пол"])
+
+    # align
+    sheet["A1"].alignment = align_center
+    sheet["B1"].alignment = align_center
+    sheet["C1"].alignment = align_center
+    sheet["D1"].alignment = align_center
+
+    # font
+    sheet["A1"].font = font
+    sheet["B1"].font = font
+    sheet["C1"].font = font
+    sheet["D1"].font = font
+
+    # border
+    sheet["A1"].border = border
+    sheet["B1"].border = border
+    sheet["C1"].border = border
+    sheet["D1"].border = border
+
+    for idx, user in enumerate(data, start=1):
+        if user.gender == "male":
+            gender = "Мужской"
+        elif user.gender == "female":
+            gender = "Мужской"
+        else:
+            gender = "Не указан"
+
+        sheet.append([idx, user.firstname, user.lastname, gender])
+
+        # выравнивание колонки А по центру
+        a_number = f"A{idx+1}"
+        sheet[a_number].alignment = align_center
+
+        # границы ячеек
+        b_number = f"B{idx+1}"
+        c_number = f"C{idx+1}"
+        d_number = f"D{idx+1}"
+        sheet[a_number].border = border
+        sheet[b_number].border = border
+        sheet[c_number].border = border
+        sheet[d_number].border = border
+
+    wb.save("players/users.xlsx")
 

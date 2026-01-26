@@ -97,6 +97,21 @@ class AsyncOrm:
             raise
 
     @staticmethod
+    async def get_all_users(session: Any) -> List[User]:
+        """Получение всех пользователей"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * 
+                FROM users
+                ORDER BY firstname, lastname
+                """
+            )
+            return [User.model_validate(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех пользователей: {e}")
+
+    @staticmethod
     async def get_user_by_tg_id(tg_id: str, session: Any) -> User | None:
         """Получение пользователя по tg_id"""
         try:
